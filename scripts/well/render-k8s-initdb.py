@@ -15,11 +15,14 @@ file the MANIFEST applies (ADR-101). The StatefulSet mounts init.sh into
 
 Standard library only. Output is deterministic (manifest order).
 """
+import os
 import pathlib
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-MIG = REPO / "db" / "migrations"
+# db/ lives in the main repository, a sibling checkout by default.
+MAIN = pathlib.Path(os.environ.get("UNHEADED_REPO", REPO.parent.parent / "unheaded"))
+MIG = MAIN / "db" / "migrations"
 OUT = REPO / "kubernetes" / "manifests" / "base" / "the-well" / "configmap-initdb.yaml"
 # The server configuration: compose's db/postgresql.conf (TLS 1.3 only, the
 # certificate under /etc/postgresql/tls) and the cluster's own hba rules.
@@ -71,7 +74,7 @@ def render():
         "  name: the-well-initdb\n",
         "  namespace: unheaded\n",
         "data:\n",
-        block("init.sh", (REPO / "db" / "init.sh").read_text()),
+        block("init.sh", (MAIN / "db" / "init.sh").read_text()),
         block("MANIFEST", (MIG / "MANIFEST").read_text()),
         block("LEDGER.sql", (MIG / "LEDGER.sql").read_text()),
     ]
@@ -95,8 +98,8 @@ def render_config():
         "  name: the-well-config\n",
         "  namespace: unheaded\n",
         "data:\n",
-        block("postgresql.conf", (REPO / "db" / "postgresql.conf").read_text()),
-        block("pg_hba.conf", (REPO / "db" / "pg_hba.k8s.conf").read_text()),
+        block("postgresql.conf", (MAIN / "db" / "postgresql.conf").read_text()),
+        block("pg_hba.conf", (MAIN / "db" / "pg_hba.k8s.conf").read_text()),
     ])
 
 
